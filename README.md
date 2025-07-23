@@ -50,20 +50,57 @@ Built with **Raydium SDK v2**, it's optimized for high-speed token launches and 
 
 ---
 
-## 📁 Repository Structure
+## 🚀 Getting Started
+
+Running the project is a straightforward process. You can simply clone the repo, install dependencies, and then run it.
+
+### 1. Clone the Repository
 
 ```bash
-bonkfun-bundler/
-├── src/
-│   ├── bundler/               # Bundle coordinator logic
-│   ├── wallets/               # Wallet manager & key handling
-│   ├── jito/                  # Jito relayer integration
-│   ├── raydium/               # Raydium swap logic
-│   └── index.ts               # Entry point for bot execution
-├── .env                       # Environment configuration
-├── README.md                  # This file
-└── package.json
+git clone https://github.com/justshiftjk/Bonkfun-Bundler/
+cd Bonkfun-Bundler
 ```
+### 2. `.env` Configuration
+
+Create a `.env` file in the root directory and fill in the required fields:
+
+```env
+PRIVATE_KEY=""
+RPC_ENDPOINT=https://mainnet.helius-rpc.com/?api-key=
+RPC_WEBSOCKET_ENDPOINT=wss://mainnet.helius-rpc.com/?api-key=
+
+SWAP_AMOUNT=0.001             
+DISTRIBUTION_WALLETNUM=2       
+
+JITO_FEE=0.001
+
+TOKEN_NAME="SuperJK"
+TOKEN_SYMBOL="SJK"
+DESCRIPTION='JK is a super dev on Crypto'
+TOKEN_SHOW_NAME="JK"
+TOKEN_CREATE_ON="https://pump.fun"
+TWITTER="https://x.com/"
+TELEGRAM="https://t.me"
+WEBSITE="https://website.com"
+FILE="./image/2.jpg"
+BUYER_WALLET=""
+BUYER_AMOUNT=
+``` 
+
+### 3. Install Dependencies
+
+```bash
+yarn install
+```
+
+### 4. Run with the command
+
+Build and Run in Production Mode:
+```bash
+yarn start
+```
+
+---
 
 ## 📩 Contact  
 For inquiries, custom integrations, or tailored solutions, reach out via:  
