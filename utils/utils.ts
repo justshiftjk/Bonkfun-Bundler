@@ -1,12 +1,17 @@
-import { Keypair } from '@solana/web3.js';
+import { getPdaLaunchpadPoolId, LAUNCHPAD_PROGRAM } from '@raydium-io/raydium-sdk-v2';
+import { NATIVE_MINT } from '@solana/spl-token';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import { connection } from '../src/config';
 
 dotenv.config();
 
 export const retrieveEnvVariable = (variableName: string) => {
+  console.log("variable:", variableName);
   const variable = process.env[variableName] || '';
+  
   if (!variable) {
     console.log(`${variableName} is not set`);
     process.exit(1);
@@ -70,8 +75,8 @@ export const randVal = (min: number, max: number, count: number, total: number, 
 //   }
 // };
 
+export const saveDataToFile = async (newData: string[], fileName: string = "data.json") => {
 
-export const saveDataToFile = (newData: string[], fileName: string = "data.json") => {
   const folderPath = 'keys';
   const filePath = path.join(folderPath, fileName);
 

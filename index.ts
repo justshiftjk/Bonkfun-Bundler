@@ -5,8 +5,6 @@ import { generateVanityAddress, saveDataToFile, sleep } from "./utils"
 import { distributeSol, addBonkAddressesToTable, createLUT, makeBuyIx, createBonkFunTokenMetadata, createBonkTokenTx, createTokenTx } from "./src/main";
 import { executeJitoTx } from "./executor/jito";
 
-
-
 const commitment = "confirmed"
 
 const connection = new Connection(RPC_ENDPOINT, {
