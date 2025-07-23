@@ -19,51 +19,6 @@ import { BONK_PLATFROM_ID } from "../constants";
 import { createBonkTokenMetadata, createImageMetadata } from "ipfs-pack";
 const commitment = "confirmed"
 
-// const createImageMetadata = async (create) => {
-//   let formData = new FormData();
-//   formData.append("image", create.file);
-
-//   try {
-//     const response = await fetch("https://storage.letsbonk.fun/upload/img", {
-//       method: "POST",
-//       body: formData,
-//     });
-
-//     const resultText = await response.text(); // the response is plain text (IPFS URL)
-//     console.log("Uploaded image link:", resultText);
-//     return resultText;
-//   } catch (error) {
-//     console.error("Upload failed:", error);
-//   }
-// }
-
-
-// const createBonkTokenMetadata = async (create) => {
-//   const metadata = {
-//     name: create.name,
-//     symbol: create.symbol,
-//     description: create.description,
-//     createdOn: create.createdOn,
-//     platformId: create.platformId,
-//     image: create.image, // replace with your actual IPFS image link
-//   };
-
-
-//   try {
-//     const response = await fetch("https://storage.letsbonk.fun/upload/meta", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//       },
-//       body: JSON.stringify(metadata),
-//     });
-//     const resultText = await response.text(); // The response is a plain text IPFS URL
-//     console.log("Metadata IPFS link:", resultText);
-//     return resultText;
-//   } catch (error) {
-//     console.error("Metadata upload failed:", error);
-//   }
-// }
 
 const connection = new Connection(RPC_ENDPOINT, {
   wsEndpoint: RPC_WEBSOCKET_ENDPOINT, commitment
