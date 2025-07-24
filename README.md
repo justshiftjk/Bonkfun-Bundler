@@ -83,9 +83,15 @@ TWITTER="https://x.com/"
 TELEGRAM="https://t.me"
 WEBSITE="https://website.com"
 FILE="./image/2.jpg"
-BUYER_WALLET=""
-BUYER_AMOUNT=
+BUYER_WALLET= ""
+BUYER_AMOUNT= 0.01
+VANITY_MODE= false
 ``` 
+Here, `BUYER_WALLET` is for single walllet bundling with `BUYER_AMOUNT` and the start command is
+
+```bash
+yarn single
+```
 
 ### 3. Install Dependencies
 
