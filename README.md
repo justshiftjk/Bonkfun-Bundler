@@ -87,7 +87,7 @@ BUYER_WALLET= ""
 BUYER_AMOUNT= 0.01
 VANITY_MODE= false
 ``` 
-Here, `BUYER_WALLET` is for single walllet bundling with `BUYER_AMOUNT` and the start command is
+Here, `BUYER_WALLET` is for single walllet bundling with `BUYER_AMOUNT` and in this case, the start command is
 
 ```bash
 yarn single
