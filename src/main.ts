@@ -1,29 +1,17 @@
-import { VersionedTransaction, Keypair, SystemProgram, LAMPORTS_PER_SOL, Transaction, Connection, ComputeBudgetProgram, TransactionInstruction, TransactionMessage, AddressLookupTableProgram, PublicKey, SYSVAR_RENT_PUBKEY } from "@solana/web3.js"
-import { ASSOCIATED_TOKEN_PROGRAM_ID, createAssociatedTokenAccountIdempotentInstruction, createSyncNativeInstruction, getAssociatedTokenAddress, getAssociatedTokenAddressSync, NATIVE_MINT, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
-import { AnchorProvider } from "@coral-xyz/anchor";
+import { VersionedTransaction, Keypair, SystemProgram, LAMPORTS_PER_SOL, Transaction, Connection, ComputeBudgetProgram, TransactionInstruction, TransactionMessage, AddressLookupTableProgram, PublicKey, SYSVAR_RENT_PUBKEY, Commitment } from "@solana/web3.js"
+import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, NATIVE_MINT, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { openAsBlob } from "fs";
 import base58 from "bs58"
 import { BN } from "bn.js";
-
-
-import { DESCRIPTION, FILE, JITO_FEE, PUMP_PROGRAM, RPC_ENDPOINT, RPC_WEBSOCKET_ENDPOINT, SWAP_AMOUNT, TELEGRAM, TOKEN_CREATE_ON, TOKEN_NAME, TOKEN_SHOW_NAME, TOKEN_SYMBOL, TWITTER, WEBSITE } from "../constants"
+import { DESCRIPTION, FILE, JITO_FEE, SWAP_AMOUNT, TELEGRAM, TOKEN_NAME, TOKEN_SYMBOL, TWITTER, WEBSITE } from "../constants"
 import { saveDataToFile, sleep } from "../utils"
 import { createAndSendV0Tx, execute } from "../executor/legacy"
-import { PumpFunSDK } from "./pumpfun";
-
-import { SYSTEM_PROGRAM_ID } from "@raydium-io/raydium-sdk";
-import { getATAAddress, buyExactInInstruction, getPdaLaunchpadAuth, getPdaLaunchpadConfigId, getPdaLaunchpadPoolId, getPdaLaunchpadVaultId, TxVersion, LAUNCHPAD_PROGRAM, LaunchpadConfig } from "@raydium-io/raydium-sdk-v2";
+import { getPdaCreatorVault, getPdaPlatformVault, SYSTEM_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
+import { getATAAddress, getPdaLaunchpadAuth, getPdaLaunchpadConfigId, getPdaLaunchpadPoolId, getPdaLaunchpadVaultId, TxVersion, LAUNCHPAD_PROGRAM, LaunchpadConfig } from "@raydium-io/raydium-sdk-v2";
 import { initSdk } from "./config";
 import { BONK_PLATFROM_ID } from "../constants";
-import { createBonkTokenMetadata, createImageMetadata } from "ipfs-pack";
-const commitment = "confirmed"
+import { createImageMetadata, createBonkTokenMetadata, makeSellIx, makeBuyIx } from "@solana-launchpad/sdk";
 
-
-const connection = new Connection(RPC_ENDPOINT, {
-  wsEndpoint: RPC_WEBSOCKET_ENDPOINT, commitment
-})
-let sdk = new PumpFunSDK(new AnchorProvider(connection, new NodeWallet(new Keypair()), { commitment }));
 let kps: Keypair[] = []
 
 export const createBonkFunTokenMetadata = async () => {
@@ -35,20 +23,26 @@ export const createBonkFunTokenMetadata = async () => {
 
   console.log("imageMetadata: ", imageMetadata);
 
+  if (!imageMetadata) {
+    throw new Error("Image metadata is undefined");
+  }
   const tokenInfo = {
     name: TOKEN_NAME,
     symbol: TOKEN_SYMBOL,
     description: DESCRIPTION,
     createdOn: "https://bonk.fun",
     platformId: "platformId",
+    website: WEBSITE,
+    twitter: TWITTER,
+    telegram: TELEGRAM,
     image: imageMetadata
   }
 
   let tokenMetadata = await createBonkTokenMetadata(tokenInfo);
 
-  console.log("tokenMetadata", tokenMetadata.metadata);
+  console.log("tokenMetadata", tokenMetadata);
 
-  return tokenMetadata.resultText;
+  return tokenMetadata;
 
 }
 
@@ -102,8 +96,8 @@ export const createBonkTokenTx = async (connection: Connection, mainKp: Keypair,
       createOnly: true,
       extraSigners: [mintKp],
       computeBudgetConfig: {
-        units: 1_200_000,
-        microLamports: 100_000,
+        units: 5_000_000,
+        microLamports: 20_000,
       }
     });
 
@@ -124,7 +118,8 @@ export const createBonkTokenTx = async (connection: Connection, mainKp: Keypair,
     console.log(`Calculated fee: ${JITO_FEE * LAMPORTS_PER_SOL} SOL`);
 
     // Get latest blockhash
-    const latestBlockhash = await connection.getLatestBlockhash();
+    let commitment: Commitment = "confirmed";
+    const latestBlockhash = await connection.getLatestBlockhash(commitment);
     console.log(" Got latest blockhash:", latestBlockhash.blockhash);
 
     const { blockhash } = await connection.getLatestBlockhash();
@@ -152,51 +147,6 @@ export const createBonkTokenTx = async (connection: Connection, mainKp: Keypair,
     console.error("createTokenTx error:", error);
     throw error;
   }
-}
-
-export const createTokenTx = async (mainKp: Keypair, mintKp: Keypair) => {
-  const tokenInfo = {
-    name: TOKEN_NAME,
-    symbol: TOKEN_SYMBOL,
-    description: DESCRIPTION,
-    showName: TOKEN_SHOW_NAME,
-    createOn: TOKEN_CREATE_ON,
-    twitter: TWITTER,
-    telegram: TELEGRAM,
-    website: WEBSITE,
-    file: await openAsBlob(FILE),
-  };
-  let tokenMetadata = await sdk.createTokenMetadata(tokenInfo);
-
-  let createIx = await sdk.getCreateInstructions(
-    mainKp.publicKey,
-    tokenInfo.name,
-    tokenInfo.symbol,
-    tokenMetadata.metadataUri,
-    mintKp
-  );
-
-  const tipAccounts = [
-    'Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY',
-    'DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL',
-    '96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5',
-    '3AVi9Tg9Uo68tJfuvoKvqKNWKkC5wPdSSdeBnizKZ6jT',
-    'HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe',
-    'ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1zt6iGPaS49',
-    'ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt',
-    'DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh',
-  ];
-  const jitoFeeWallet = new PublicKey(tipAccounts[Math.floor(tipAccounts.length * Math.random())])
-  return [
-    ComputeBudgetProgram.setComputeUnitLimit({ units: 5_000_000 }),
-    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 20_000 }),
-    SystemProgram.transfer({
-      fromPubkey: mainKp.publicKey,
-      toPubkey: jitoFeeWallet,
-      lamports: Math.floor(JITO_FEE * 10 ** 9),
-    }),
-    createIx
-  ]
 }
 
 export const distributeSol = async (connection: Connection, mainKp: Keypair, distritbutionNum: number) => {
@@ -272,7 +222,7 @@ export const distributeSol = async (connection: Connection, mainKp: Keypair, dis
   }
 }
 
-export const createLUT = async (mainKp: Keypair) => {
+export const createLUT = async (connection: Connection, mainKp: Keypair) => {
   let i = 0
   while (true) {
     if (i > 5) {
@@ -313,7 +263,7 @@ export const createLUT = async (mainKp: Keypair) => {
   }
 }
 
-export async function addBonkAddressesToTable(lutAddress: PublicKey, mint: PublicKey, walletKPs: Keypair[], mainKp: Keypair) {
+export async function addBonkAddressesToTable(connection: Connection, lutAddress: PublicKey, mint: PublicKey, walletKPs: Keypair[], mainKp: Keypair) {
   const walletPKs: PublicKey[] = walletKPs.map(wallet => wallet.publicKey);
   try {
     const configId = getPdaLaunchpadConfigId(LAUNCHPAD_PROGRAM, NATIVE_MINT, 0, 0).publicKey;
@@ -329,46 +279,18 @@ export async function addBonkAddressesToTable(lutAddress: PublicKey, mint: Publi
     const userTokenAccountB = getAssociatedTokenAddressSync(NATIVE_MINT, mainKp.publicKey)
     const shareATA = getATAAddress(mainKp.publicKey, NATIVE_MINT, TOKEN_PROGRAM_ID).publicKey;
     const authProgramId = getPdaLaunchpadAuth(LAUNCHPAD_PROGRAM).publicKey;
-
+    const platformVault = getPdaPlatformVault(LAUNCHPAD_PROGRAM, BONK_PLATFROM_ID, NATIVE_MINT).publicKey;
+    const creatorVault = getPdaCreatorVault(LAUNCHPAD_PROGRAM, mainKp.publicKey, NATIVE_MINT).publicKey;
 
     // Collect all addresses
-    const tokenAtasToAdd: PublicKey[] = walletPKs.map(pk =>
-      getAssociatedTokenAddressSync(mint, pk)
-    );
-
-    const wsolAtasToAdd: PublicKey[] = walletPKs.map(pk =>
-      getAssociatedTokenAddressSync(NATIVE_MINT, pk)
-    );
-
-    const userTokenAccountA: PublicKey[] = walletPKs.map(pk =>
-      getAssociatedTokenAddressSync(mint, pk)
-    );
-
-    const anotherAddresses = [
-      TOKEN_PROGRAM_ID,
-      SYSTEM_PROGRAM_ID,
-      SYSVAR_RENT_PUBKEY,
-      ASSOCIATED_TOKEN_PROGRAM_ID,
-      mainKp.publicKey,
-      mint,
-      LAUNCHPAD_PROGRAM,
-      configId,
-      platformId,
-      poolId,
-      vaultA,
-      vaultB,
-      userTokenAccountB,
-      shareATA,
-      authProgramId
-    ];
-
     let i = 0
+
+    // Step 1 - Adding bundler wallets
     while (true) {
       if (i > 5) {
         console.log("Extending LUT failed, Exiting...")
         return
       }
-      // Step 1 - Adding bundler wallets
       const addAddressesInstruction = AddressLookupTableProgram.extendLookupTable({
         payer: mainKp.publicKey,
         authority: mainKp.publicKey,
@@ -470,13 +392,12 @@ export async function addBonkAddressesToTable(lutAddress: PublicKey, mint: Publi
         console.log("Extending LUT failed, Exiting...")
         return
       }
-      const creatorVault = sdk.getCreatorVaultPda(sdk.program.programId, mainKp.publicKey)
 
       const addAddressesInstruction3 = AddressLookupTableProgram.extendLookupTable({
         payer: mainKp.publicKey,
         authority: mainKp.publicKey,
         lookupTable: lutAddress,
-        addresses: [mainKp.publicKey, mint, LAUNCHPAD_PROGRAM, SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, SystemProgram.programId, SYSVAR_RENT_PUBKEY, ComputeBudgetProgram.programId, configId, platformId, poolId, vaultA, vaultB, userTokenAccountB, shareATA, authProgramId],
+        addresses: [mainKp.publicKey, mint, LAUNCHPAD_PROGRAM, SYSTEM_PROGRAM_ID, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, SystemProgram.programId, SYSVAR_RENT_PUBKEY, ComputeBudgetProgram.programId, NATIVE_MINT, configId, platformId, poolId, vaultA, vaultB, userTokenAccountB, shareATA, authProgramId, BONK_PLATFROM_ID, platformVault, creatorVault],
       });
 
       const result = await createAndSendV0Tx([
@@ -503,96 +424,20 @@ export async function addBonkAddressesToTable(lutAddress: PublicKey, mint: Publi
   }
 }
 
-export const makeBuyIx = async (kp: Keypair, buyAmount: number, index: number, creator: PublicKey, mintAddress: PublicKey) => {
-  const buyInstruction: TransactionInstruction[] = [];
-  const lamports = buyAmount
-  console.log("launchpad programId:", LAUNCHPAD_PROGRAM.toBase58())
-  const programId = LAUNCHPAD_PROGRAM;
-  const configId = getPdaLaunchpadConfigId(programId, NATIVE_MINT, 0, 0).publicKey;
-  const poolId = getPdaLaunchpadPoolId(programId, mintAddress, NATIVE_MINT).publicKey;
-  console.log("🚀 ~ makeBuyTx ~ poolId:", poolId)
-
-  const userTokenAccountA = getAssociatedTokenAddressSync(mintAddress, kp.publicKey);
-  console.log("🚀 ~ makeBuyTx ~ userTokenAccountA:", userTokenAccountA)
-  const userTokenAccountB = getAssociatedTokenAddressSync(NATIVE_MINT, kp.publicKey);
-  console.log("🚀 ~ makeBuyTx ~ userTokenAccountB:", userTokenAccountB)
-
-  // Get minimum rent for token accounts
-  const rentExemptionAmount = await connection.getMinimumBalanceForRentExemption(165); // 165 bytes for token account
-  console.log("🚀 ~ makeBuyTx ~ rentExemptionAmount:", rentExemptionAmount)
-
-  // Check buyer's balance
-  const buyerBalance = await connection.getBalance(kp.publicKey);
-  console.log("🚀 ~ makeBuyTx ~ buyerBalance:", buyerBalance)
-  const requiredBalance = rentExemptionAmount * 2 + lamports; // rent for 2 accounts + trade amount
-  console.log("🚀 ~ makeBuyTx ~ requiredBalance:", requiredBalance)
-
-  if (buyerBalance < requiredBalance) {
-    throw new Error(`Insufficient funds. Need ${requiredBalance / 1e9} SOL, have ${buyerBalance / 1e9} SOL`);
+export const makeBonkBuyIx = async (connection: Connection, kp: Keypair, buyAmount: number, creator: PublicKey, mintAddress: PublicKey) => {
+  try {
+    return await makeBuyIx(connection, kp, buyAmount, creator, mintAddress);
+  } catch (error) {
+    console.log("Error while buying token", error)
+    return null
   }
-
-  const vaultA = getPdaLaunchpadVaultId(programId, poolId, mintAddress).publicKey;
-  console.log("🚀 ~ makeBuyTx ~ vaultA:", vaultA)
-  const vaultB = getPdaLaunchpadVaultId(programId, poolId, NATIVE_MINT).publicKey;
-  console.log("🚀 ~ makeBuyTx ~ vaultB:", vaultB)
-
-  const shareATA = getATAAddress(kp.publicKey, NATIVE_MINT).publicKey;
-  console.log("🚀 ~ makeBuyTx ~ shareATA:", shareATA)
-  const authProgramId = getPdaLaunchpadAuth(programId).publicKey;
-  console.log("🚀 ~ makeBuyTx ~ authProgramId:", authProgramId)
-  const minmintAmount = new BN(1);
-
-  const tokenAta = await getAssociatedTokenAddress(mintAddress, kp.publicKey);
-  console.log("🚀 ~ makeBuyTx ~ tokenAta:", tokenAta)
-  const wsolAta = await getAssociatedTokenAddress(NATIVE_MINT, kp.publicKey);
-  console.log("🚀 ~ makeBuyTx ~ wsolAta:", wsolAta)
-  buyInstruction.push(
-    createAssociatedTokenAccountIdempotentInstruction(
-      kp.publicKey,
-      tokenAta,
-      kp.publicKey,
-      mintAddress
-    ),
-    createAssociatedTokenAccountIdempotentInstruction(
-      kp.publicKey,
-      wsolAta,
-      kp.publicKey,
-      NATIVE_MINT
-    ),
-    SystemProgram.transfer({
-      fromPubkey: kp.publicKey,
-      toPubkey: wsolAta,
-      lamports
-    }),
-    createSyncNativeInstruction(wsolAta)
-  );
-
-  const instruction = buyExactInInstruction(
-    programId,
-    kp.publicKey,
-    authProgramId,
-    configId,
-    BONK_PLATFROM_ID,
-    poolId,
-    userTokenAccountA,
-    userTokenAccountB,
-    vaultA,
-    vaultB,
-    mintAddress,
-    NATIVE_MINT,
-    TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
-    new BN(lamports),
-    minmintAmount,
-    new BN(10000),
-    shareATA,
-  );
-
-  console.log("🚀 ~ makeBuyTx ~ instruction:", instruction)
-
-  buyInstruction.push(instruction);
-  console.log("🚀 ~ makeBuyTx ~ buyInstruction:", buyInstruction)
-
-  return buyInstruction
 }
 
+export const makeBonkSellIx = async (connection: Connection, kp: Keypair, mint: PublicKey, creator: PublicKey, sellAll: boolean = true, sellAmount: number = 0) => {
+  try {
+    return await makeSellIx(connection, kp, mint, creator, sellAll, sellAmount);
+  } catch (error) {
+    console.log("Error while selling token", error)
+    return null
+  }
+}

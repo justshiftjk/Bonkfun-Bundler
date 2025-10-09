@@ -14,11 +14,8 @@ import {
   TransactionInstruction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { PriorityFee, TransactionResult } from "./types";
 import fs from "fs"
 import bs58 from "bs58";
-import { createAssociatedTokenAccountInstruction, createTransferCheckedInstruction, getAssociatedTokenAddress, getAssociatedTokenAddressSync } from "@solana/spl-token";
-import { sha256 } from "js-sha256";
 import { RPC_ENDPOINT, RPC_WEBSOCKET_ENDPOINT } from "../constants";
 
 
@@ -48,93 +45,6 @@ export const calculateWithSlippageSell = (
 ) => {
   return amount - (amount * basisPoints) / BigInt(1000);
 };
-
-export async function sendTx(
-  connection: Connection,
-  tx: Transaction,
-  payer: PublicKey,
-  signers: Keypair[],
-  priorityFees?: PriorityFee,
-  commitment: Commitment = DEFAULT_COMMITMENT,
-  finality: Finality = DEFAULT_FINALITY
-): Promise<TransactionResult> {
-  
-  let newTx = new Transaction();
-
-  if (priorityFees) {
-    const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-      units: priorityFees.unitLimit,
-    });
-
-    const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-      microLamports: priorityFees.unitPrice,
-    });
-    newTx.add(modifyComputeUnits);
-    newTx.add(addPriorityFee);
-  }
-  newTx.add(tx);
-  let versionedTx = await buildVersionedTx(connection, payer, newTx, commitment);
-  versionedTx.sign(signers);
-  try {
-    console.log((await connection.simulateTransaction(versionedTx, undefined)))
-
-    const sig = await connection.sendTransaction(versionedTx, {
-      skipPreflight: false,
-    });
-    console.log("Transaction signature: ", `https://solscan.io/tx/${sig}`);
-
-    let txResult = await getTxDetails(connection, sig, commitment, finality);
-    if (!txResult) {
-      return {
-        success: false,
-        error: "Transaction failed",
-      };
-    }
-    return {
-      success: true,
-      signature: sig,
-      results: txResult,
-    };
-  } catch (e) {
-    if (e instanceof SendTransactionError) {
-      let ste = e as SendTransactionError;
-    } else {
-      console.error(e);
-    }
-    return {
-      error: e,
-      success: false,
-    };
-  }
-}
-
-export async function buildTx(
-  connection: Connection,
-  tx: Transaction,
-  payer: PublicKey,
-  signers: Keypair[],
-  priorityFees?: PriorityFee,
-  commitment: Commitment = DEFAULT_COMMITMENT,
-  finality: Finality = DEFAULT_FINALITY
-): Promise<VersionedTransaction> {
-  let newTx = new Transaction();
-
-  if (priorityFees) {
-    const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
-      units: priorityFees.unitLimit,
-    });
-
-    const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
-      microLamports: priorityFees.unitPrice,
-    });
-    newTx.add(modifyComputeUnits);
-    newTx.add(addPriorityFee);
-  }
-  newTx.add(tx);
-  let versionedTx = await buildVersionedTx(connection, payer, newTx, commitment);
-  versionedTx.sign(signers);
-  return versionedTx;
-}
 
 export const buildVersionedTx = async (
   connection: Connection,
@@ -245,49 +155,6 @@ export const printSOLBalance = async (
   );
 };
 
-export const getSPLBalance = async (
-  connection: Connection,
-  mintAddress: PublicKey,
-  pubKey: PublicKey,
-  allowOffCurve: boolean = false
-) => {
-  try {
-    let ata = getAssociatedTokenAddressSync(mintAddress, pubKey, allowOffCurve);
-    const balance = await connection.getTokenAccountBalance(ata, "processed");
-    return balance.value.uiAmount;
-  } catch (e) {}
-  return null;
-};
-
-export const printSPLBalance = async (
-  connection: Connection,
-  mintAddress: PublicKey,
-  user: PublicKey,
-  info: string = ""
-) => {
-  const balance = await getSPLBalance(connection, mintAddress, user);
-  if (balance === null) {
-    console.log(
-      `${info ? info + " " : ""}${user.toBase58()}:`,
-      "No Account Found"
-    );
-  } else {
-    console.log(`${info ? info + " " : ""}${user.toBase58()}:`, balance);
-  }
-};
-
-export const baseToValue = (base: number, decimals: number): number => {
-  return base * Math.pow(10, decimals);
-};
-
-export const valueToBase = (value: number, decimals: number): number => {
-  return value / Math.pow(10, decimals);
-};
-
-//i.e. account:BondingCurve
-export function getDiscriminator(name: string) {
-  return sha256.digest(name).slice(0, 8);
-}
 
 // Define the type for the JSON file content
 export interface Data {
@@ -325,135 +192,6 @@ export const execute = async (transaction: VersionedTransaction, latestBlockhash
   return signature
 }
 
-export const saveHolderWalletsToFile = (newData: Data[], filePath: string = ".keys/holderWallets.json") => {
-  try {
-    let existingData: Data[] = [];
-
-    // Check if the file exists
-    if (fs.existsSync(filePath)) {
-      // If the file exists, read its content
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
-      existingData = JSON.parse(fileContent);
-    }
-
-    // Add the new data to the existing array
-    existingData.push(...newData);
-
-    // Write the updated data back to the file
-    fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2));
-
-  } catch (error) {
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log(`File ${filePath} deleted and create new file.`);
-      }
-      fs.writeFileSync(filePath, JSON.stringify(newData, null, 2));
-      console.log("File is saved successfully.")
-    } catch (error) {
-      console.log('Error saving data to JSON file:', error);
-    }
-  }
-};
-
-export async function newSendToken(
-  walletKeypairs: Keypair[], tokensToSendArr: number[], walletKeypair: Keypair, mintAddress: PublicKey, tokenDecimal: number
-) {
-  try {
-      const srcAta = await getAssociatedTokenAddress(mintAddress, walletKeypair.publicKey)
-      if (tokensToSendArr.length !== walletKeypairs.length) {
-          console.log("Number of wallets and token amounts array is not matching")
-          throw new Error("Number of wallets and token amounts array is not matching")
-      }
-
-      console.log("Token amount of the srcAta: ", (await connection.getTokenAccountBalance(srcAta)).value.amount)
-
-      const insts: TransactionInstruction[] = []
-      console.log("Wallet length to distribute: ", walletKeypairs.length)
-      for (let i = 0; i < walletKeypairs.length; i++) {
-          const destKp = walletKeypairs[i]
-          const amount = tokensToSendArr[i]
-          console.log("token amount ", amount)
-
-          const baseAta = await getAssociatedTokenAddress(mintAddress, destKp.publicKey)
-          if (!await connection.getAccountInfo(baseAta)) {
-              insts.push(
-                  createAssociatedTokenAccountInstruction(
-                      walletKeypair.publicKey,
-                      baseAta,
-                      destKp.publicKey,
-                      mintAddress
-                  )
-              )
-          }
-
-          insts.push(
-              createTransferCheckedInstruction(
-                  srcAta,
-                  mintAddress,
-                  baseAta,
-                  walletKeypair.publicKey,
-                  Math.floor(amount * 10 ** tokenDecimal),
-                  tokenDecimal
-              )
-          )
-      }
-
-      console.log("total number of instructions : ", insts.length)
-      const txs = await makeTxs(insts, walletKeypair)
-      if (!txs) {
-          console.log("Transaction not retrieved from makeTxs function")
-          throw new Error("Transaction not retrieved from makeTxs function")
-      }
-      try {
-          await Promise.all(txs.map(async (transaction, i) => {
-              await sleep(i * 200)
-              // Assuming you have a function to send a transaction
-              return handleTxs(transaction, walletKeypair)
-          }));
-
-      } catch (error) {
-          console.log("Error in transaction confirmation part : ", error)
-      }
-  } catch (error) {
-      console.log("New Send Token function error : ", error)
-  }
-}
-
-const makeTxs = async (insts: TransactionInstruction[], mainKp: Keypair) => {
-  try {
-
-      const batchNum = 12
-      const txNum = Math.ceil(insts.length / batchNum)
-      const txs: Transaction[] = []
-      for (let i = 0; i < txNum; i++) {
-          const upperIndex = batchNum * (i + 1)
-          const downIndex = batchNum * i
-          const tx = new Transaction().add(
-              ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
-              ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 })
-          )
-
-          for (let j = downIndex; j < upperIndex; j++)
-              if (insts[j])
-                  tx.add(insts[j])
-
-          tx.recentBlockhash = (await connection.getLatestBlockhash("confirmed")).blockhash
-          tx.feePayer = mainKp.publicKey
-          console.log(await connection.simulateTransaction(tx))
-
-          txs.push(tx)
-      }
-      if (txs.length == 0) {
-          console.log("Empty instructions as input")
-          throw new Error("Empty instructions as input")
-      }
-      return txs
-  } catch (error) {
-      console.log("MakeTxs ~ error")
-  }
-
-}
 
 const handleTxs = async (transaction: Transaction, mainKp: Keypair) => {
   const sig = await sendAndConfirmTransaction(connection, transaction, [mainKp], { skipPreflight: true })

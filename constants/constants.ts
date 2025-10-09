@@ -5,6 +5,11 @@ export const PRIVATE_KEY = retrieveEnvVariable('PRIVATE_KEY')
 export const RPC_ENDPOINT = retrieveEnvVariable('RPC_ENDPOINT')
 export const RPC_WEBSOCKET_ENDPOINT = retrieveEnvVariable('RPC_WEBSOCKET_ENDPOINT')
 
+export const LIL_JIT_ENDPOINT = retrieveEnvVariable('LIL_JIT_ENDPOINT')
+export const LIL_JIT_WEBSOCKET_ENDPOINT = retrieveEnvVariable('LIL_JIT_WEBSOCKET_ENDPOINT')
+
+export const LIL_JIT_MODE = retrieveEnvVariable('LIL_JIT_MODE') == "true"
+
 export const TOKEN_NAME = retrieveEnvVariable('TOKEN_NAME')
 export const TOKEN_SYMBOL = retrieveEnvVariable('TOKEN_SYMBOL')
 export const DESCRIPTION = retrieveEnvVariable('DESCRIPTION')

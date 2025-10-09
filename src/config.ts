@@ -1,11 +1,6 @@
 import { Raydium, TxVersion } from '@raydium-io/raydium-sdk-v2'
 import { Connection, Keypair, PublicKey, clusterApiUrl } from '@solana/web3.js'
-import dotenv from "dotenv"
-
-dotenv.config();
-
-const RPC_ENDPOINT = process.env.RPC_ENDPOINT || ''
-console.log("RPC:", RPC_ENDPOINT);
+import { RPC_ENDPOINT } from '../constants'
 
 export const connection = new Connection(RPC_ENDPOINT) // Replace with actual RPC URL
 export const txVersion = TxVersion.LEGACY
