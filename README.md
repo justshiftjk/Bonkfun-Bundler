@@ -29,6 +29,36 @@ Built with **Raydium SDK v2**, it's optimized for high-speed token launches and 
 
 4. **Block Submission**  
    The bundle is submitted to the Jito relayer for execution in the same block – fast and unfragmented.
+---
+
+## 🎯 Bundle Submission Modes
+
+The bot now supports **two bundle submission modes**:
+
+### **Standard Jito Mode** (Default)
+
+- Uses official Jito block-engine endpoints (NY, Tokyo)
+- Industry-standard bundle submission
+- Tested and reliable for mainnet execution
+
+### **Lil Jito Mode** 🆕
+
+- Alternative bundle submission endpoint
+- Configurable via environment variables
+- Includes bundle simulation and status tracking
+- Easy toggle between modes via `LIL_JIT_MODE` flag
+
+**Configuration:**
+
+```bash
+# Enable Lil Jito Mode
+LIL_JIT_MODE=true
+LIL_JIT_ENDPOINT=<your-lil-jit-endpoint>
+LIL_JIT_WEBSOCKET_ENDPOINT=<your-lil-jit-ws-endpoint>
+
+# Use Standard Jito Mode (default)
+LIL_JIT_MODE=false
+```
 
 ---
 
@@ -69,6 +99,11 @@ PRIVATE_KEY=""
 RPC_ENDPOINT=https://mainnet.helius-rpc.com/?api-key=
 RPC_WEBSOCKET_ENDPOINT=wss://mainnet.helius-rpc.com/?api-key=
 
+LIL_JIT_ENDPOINT = https://blue-bitter-mountain.solana-mainnet.quiknode.pro/
+LIL_JIT_WEBSOCKET_ENDPOINT = wss://blue-bitter-mountain.solana-mainnet.quiknode.pro/
+
+LIL_JIT_MODE="false"
+
 SWAP_AMOUNT=0.001             
 DISTRIBUTION_WALLETNUM=2       
 
@@ -83,9 +118,10 @@ TWITTER="https://x.com/"
 TELEGRAM="https://t.me"
 WEBSITE="https://website.com"
 FILE="./image/2.jpg"
+VANITY_MODE= false
 BUYER_WALLET= ""
 BUYER_AMOUNT= 0.01
-VANITY_MODE= false
+
 ``` 
 Here, `BUYER_WALLET` is for single walllet bundling with `BUYER_AMOUNT` and in this case, the start command is
 
