@@ -1,150 +1,155 @@
-# 🚀 BonkFun Bundler – Solana Atomic Launch Bot
+# Monad Nad.fun Bundler & Volume Bot
 
-A **fast and reliable Solana bundle trading bot** designed for `bonk.fun`-style token launches. This bot atomically creates tokens and executes multi-wallet buys within a single block using **Jito bundles**, providing optimal performance and front-running protection.
+Automated bundler and volume bot for token launches on nad.fun (Monad blockchain token launchpad).
 
-Built with **Raydium SDK v2**, it's optimized for high-speed token launches and seamless execution via the Jito-Solana ecosystem.
+## Features
 
----
+- **Automated Token Creation**: Bundle token creation and first buy transactions
+- **Bonding Curve Funding**: Distribute 1,296,000 MON across 100-150 isolated wallets
+- **Volume Generation**: Automated buy/sell trading from separate volume wallets
+- **Wallet Isolation**: Ensures wallets appear unrelated and independent
+- **Recovery Mechanism**: Automatic token-to-MON swap and consolidation if needed
+- **Web GUI**: Monitor and control the bot through a web interface
 
-## ✨ Features
+## Requirements
 
-- ✅ **Multi-Wallet Bundling** – Supports dynamic bundling across 12+ wallets
-- ✅ **Atomic Token Launch** – Creates a new token and buys in the same block
-- ✅ **Jito Relayer Integration** – Ensures reliable and priority block inclusion
-- ✅ **Raydium SDK v2** – Executes swaps with best routing and low latency
-- ✅ **Priority CU Optimization** – Fine-tuned for compute unit pricing and speed
+- Node.js 18+ 
+- npm or yarn
+- Monad RPC endpoint
+- Private keys or seed phrase for wallet generation
 
----
-
-## ⚙️ How It Works
-
-1. **Token Creation**  
-   Creates a new SPL token, like a memecoin (e.g., $BONK-style).
-
-2. **Swap Transaction Preparation**  
-   Prepares swap instructions from multiple funded wallets.
-
-3. **Jito Bundling**  
-   All transactions are wrapped into a single atomic bundle using the Jito-Solana API.
-
-4. **Block Submission**  
-   The bundle is submitted to the Jito relayer for execution in the same block – fast and unfragmented.
----
-
-## 🎯 Bundle Submission Modes
-
-The bot now supports **two bundle submission modes**:
-
-### **Standard Jito Mode** (Default)
-
-- Uses official Jito block-engine endpoints (NY, Tokyo)
-- Industry-standard bundle submission
-- Tested and reliable for mainnet execution
-
-### **Lil Jito Mode** 🆕
-
-- Alternative bundle submission endpoint
-- Configurable via environment variables
-- Includes bundle simulation and status tracking
-- Easy toggle between modes via `LIL_JIT_MODE` flag
-
-**Configuration:**
+## Installation
 
 ```bash
-# Enable Lil Jito Mode
-LIL_JIT_MODE=true
-LIL_JIT_ENDPOINT=<your-lil-jit-endpoint>
-LIL_JIT_WEBSOCKET_ENDPOINT=<your-lil-jit-ws-endpoint>
-
-# Use Standard Jito Mode (default)
-LIL_JIT_MODE=false
+npm install
 ```
 
----
+## Configuration
 
-## 🧪 Planned Features
-
-- 🔄 Auto-retry logic for bundle failures
-- 📊 Real-time dashboard for monitoring bundle status
-- 🎯 Strategy modules to customize launch behavior
-- 📩 Telegram/Discord alerts for live bundle status
-
----
-
-## 🛠 Tech Stack
-
-- **Solana Web3.js**
-- **Raydium SDK v2**
-- **Jito-Solana (Bundle Service)**
-- **Custom bundler & transaction coordinator**
-
----
-
-## 🚀 Getting Started
-
-Running the project is a straightforward process. You can simply clone the repo, install dependencies, and then run it.
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/justshiftjk/Bonkfun-Bundler/
-cd Bonkfun-Bundler
-```
-### 2. `.env` Configuration
-
-Create a `.env` file in the root directory and fill in the required fields:
+Copy `.env.example` to `.env` and configure:
 
 ```env
-PRIVATE_KEY=""
-RPC_ENDPOINT=https://mainnet.helius-rpc.com/?api-key=
-RPC_WEBSOCKET_ENDPOINT=wss://mainnet.helius-rpc.com/?api-key=
+# Monad RPC Endpoint
+MONAD_RPC_URL=https://rpc.monad.xyz
 
-LIL_JIT_ENDPOINT = https://blue-bitter-mountain.solana-mainnet.quiknode.pro/
-LIL_JIT_WEBSOCKET_ENDPOINT = wss://blue-bitter-mountain.solana-mainnet.quiknode.pro/
+# Bundler RPC (if using Jito-like service)
+BUNDLER_RPC_URL=
 
-LIL_JIT_MODE="false"
+# Recovery Wallet (where to send recovered MON)
+RECOVERY_WALLET_ADDRESS=
 
-SWAP_AMOUNT=0.001             
-DISTRIBUTION_WALLETNUM=2       
+# Bonding Curve Parameters
+BONDING_CURVE_TARGET_MON=1296000
+FUNDING_WALLET_COUNT=100
+MIN_FUNDING_WALLETS=100
+MAX_FUNDING_WALLETS=150
 
-JITO_FEE=0.001
+# Volume Bot Parameters
+VOLUME_WALLET_COUNT=50
+MIN_TRADE_INTERVAL_MS=5000
+MAX_TRADE_INTERVAL_MS=30000
+TRADE_AMOUNT_MIN_MON=10
+TRADE_AMOUNT_MAX_MON=100
 
-TOKEN_NAME="SuperJK"
-TOKEN_SYMBOL="SJK"
-DESCRIPTION='JK is a super dev on Crypto'
-TOKEN_SHOW_NAME="JK"
-TOKEN_CREATE_ON="https://pump.fun"
-TWITTER="https://x.com/"
-TELEGRAM="https://t.me"
-WEBSITE="https://website.com"
-FILE="./image/2.jpg"
-VANITY_MODE= false
-BUYER_WALLET= ""
-BUYER_AMOUNT= 0.01
+# Nad.fun Contract Addresses
+NAD_FUN_CONTRACT_ADDRESS=
+BONDING_CURVE_CONTRACT_ADDRESS=
 
-``` 
-Here, `BUYER_WALLET` is for single walllet bundling with `BUYER_AMOUNT` and in this case, the start command is
-
-```bash
-yarn single
+# Wallet Seed (optional - will generate if not provided)
+FUNDING_WALLET_SEED=
 ```
 
-### 3. Install Dependencies
+## Usage
+
+### Command Line
 
 ```bash
-yarn install
+# Development mode
+npm run dev
+
+# Production mode
+npm run build
+npm start
 ```
 
-### 4. Run with the command
+### Web GUI
 
-Build and Run in Production Mode:
 ```bash
-yarn start
+npm run gui
 ```
 
+Then open `http://localhost:3000` in your browser.
+
+## How It Works
+
+### Phase 1: Funding Wallet Generation
+- Generates 100-150 isolated wallets using HD wallet derivation
+- Each wallet uses different derivation paths to appear unrelated
+- Wallets are stored securely
+
+### Phase 2: Bonding Curve Funding
+- Bundles token creation and first buy transaction
+- Distributes remaining MON across all funding wallets
+- Executes bundled buy transactions
+
+### Phase 3: Bonding Curve Completion
+- Monitors bonding curve status
+- Waits for 80% liquidity threshold
+
+### Phase 4: Volume Generation
+- Creates separate volume wallets (isolated from funding wallets)
+- Funds volume wallets with MON
+- Starts automated buy/sell trading
+- Only uses volume wallets (funding wallets remain untouched)
+
+### Recovery
+- Can be triggered manually or automatically
+- Sells all tokens from both funding and volume wallets
+- Consolidates MON to recovery address
+- Aims to recover the original 1,296,000 MON
+
+## Security Notes
+
+- Private keys are stored in `wallets/` directory
+- Seed phrase is saved in `wallets/seed.txt`
+- **Keep these files secure and never commit them to git**
+- Use `.env` for sensitive configuration
+
+## Project Structure
+
+```
+src/
+├── bot/
+│   ├── orchestrator.ts    # Main bot orchestration
+│   ├── volumeBot.ts       # Volume trading bot
+│   └── recovery.ts        # Recovery mechanism
+├── bundler/
+│   └── transactionBundler.ts  # Transaction bundling
+├── contracts/
+│   └── nadfun.ts         # Nad.fun contract interactions
+├── utils/
+│   ├── wallet.ts         # Wallet management
+│   └── logger.ts         # Logging
+├── gui/
+│   ├── server.ts         # Express server
+│   └── public/
+│       └── index.html    # Web interface
+├── config.ts             # Configuration
+├── types.ts              # TypeScript types
+└── main.ts               # Entry point
+```
+
+## Important Notes
+
+1. **Contract ABIs**: Update the contract ABIs in `src/contracts/nadfun.ts` with actual nad.fun contract interfaces
+2. **Bundler Integration**: Implement actual bundler service integration if using a Monad bundler
+3. **Token Address Extraction**: Update token address extraction logic after creation transaction
+4. **Testing**: Test thoroughly on testnet before mainnet use
+5. **Compliance**: Ensure compliance with local regulations
 ---
 
-## 📩 Contact  
+## Contact  
 For inquiries, custom integrations, or tailored solutions, reach out via:  
 
 💬 **Telegram**: [@bettyjk_0915](https://t.me/bettyjk_0915)
+

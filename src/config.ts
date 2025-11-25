@@ -1,31 +1,37 @@
-import { Raydium, TxVersion } from '@raydium-io/raydium-sdk-v2'
-import { Connection, Keypair, PublicKey, clusterApiUrl } from '@solana/web3.js'
-import { RPC_ENDPOINT } from '../constants'
+import dotenv from 'dotenv';
 
-export const connection = new Connection(RPC_ENDPOINT) // Replace with actual RPC URL
-export const txVersion = TxVersion.LEGACY
-const cluster = 'mainnet' // 'mainnet' | 'devnet'
+dotenv.config();
 
-let raydium: Raydium | undefined
+export const config = {
+  monad: {
+    rpcUrl: process.env.MONAD_RPC_URL || 'https://rpc.monad.xyz',
+    bundlerRpcUrl: process.env.BUNDLER_RPC_URL || '',
+  },
+  bondingCurve: {
+    targetMon: parseFloat(process.env.BONDING_CURVE_TARGET_MON || '1296000'),
+    walletCount: parseInt(process.env.FUNDING_WALLET_COUNT || '100'),
+    minWallets: parseInt(process.env.MIN_FUNDING_WALLETS || '100'),
+    maxWallets: parseInt(process.env.MAX_FUNDING_WALLETS || '150'),
+  },
+  volume: {
+    walletCount: parseInt(process.env.VOLUME_WALLET_COUNT || '50'),
+    minTradeIntervalMs: parseInt(process.env.MIN_TRADE_INTERVAL_MS || '5000'),
+    maxTradeIntervalMs: parseInt(process.env.MAX_TRADE_INTERVAL_MS || '30000'),
+    tradeAmountMinMon: parseFloat(process.env.TRADE_AMOUNT_MIN_MON || '10'),
+    tradeAmountMaxMon: parseFloat(process.env.TRADE_AMOUNT_MAX_MON || '100'),
+  },
+  contracts: {
+    nadFun: process.env.NAD_FUN_CONTRACT_ADDRESS || '',
+    bondingCurve: process.env.BONDING_CURVE_CONTRACT_ADDRESS || '',
+  },
+  recovery: {
+    walletAddress: process.env.RECOVERY_WALLET_ADDRESS || '',
+  },
+  wallet: {
+    seed: process.env.FUNDING_WALLET_SEED || '',
+  },
+  logging: {
+    level: process.env.LOG_LEVEL || 'info',
+  },
+};
 
-// Initialize the Raydium SDK and return it
-export const initSdk = async (wallet: PublicKey, params?: { loadToken?: boolean }) => {
-    if (raydium) return raydium
-
-    // Print a warning if using a free RPC node
-    if (connection.rpcEndpoint === clusterApiUrl('mainnet-beta')) {// mainnet-beta
-        console.warn('Using free RPC node might cause unexpected errors. Consider using a paid RPC node.')
-    }
-
-    // Load the Raydium SDK
-    raydium = await Raydium.load({
-        owner: wallet,
-        connection,
-        cluster,
-        disableFeatureCheck: true,
-        disableLoadToken: !params?.loadToken,
-        blockhashCommitment: 'confirmed',
-    })
-
-    return raydium
-}

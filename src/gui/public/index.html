@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nad.fun Bot Control Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .status.idle { background: #e9ecef; }
+        .status.funding { background: #fff3cd; }
+        .status.bonding { background: #cfe2ff; }
+        .status.volume { background: #d1e7dd; }
+        .status.recovery { background: #f8d7da; }
+        .status.completed { background: #d1e7dd; }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #333;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        
+        .log-entry.error { color: #f48771; }
+        .log-entry.success { color: #89d185; }
+        .log-entry.info { color: #569cd6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Nad.fun Bot Control Panel</h1>
+            <p>Monad Token Launchpad Bundler & Volume Bot</p>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2>Bot Status</h2>
+                <div id="status" class="status idle">
+                    <strong>Phase:</strong> <span id="phase">idle</span>
+                </div>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Funding Wallets</div>
+                        <div class="stat-value" id="fundingWallets">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Volume Wallets</div>
+                        <div class="stat-value" id="volumeWallets">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">MON Deposited</div>
+                        <div class="stat-value" id="monDeposited">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Volume Generated</div>
+                        <div class="stat-value" id="volumeGenerated">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Token Configuration</h2>
+                <form id="tokenForm">
+                    <div class="form-group">
+                        <label>Token Name</label>
+                        <input type="text" id="tokenName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Token Symbol</label>
+                        <input type="text" id="tokenSymbol" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="tokenDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Image URL</label>
+                        <input type="url" id="tokenImageUrl">
+                    </div>
+                    <button type="button" onclick="initializeBot()">Initialize Bot</button>
+                    <button type="button" onclick="startBot()">Start Bot</button>
+                    <button type="button" onclick="stopBot()">Stop Bot</button>
+                    <button type="button" onclick="triggerRecovery()" style="background: #dc3545;">Trigger Recovery</button>
+                </form>
+            </div>
+            
+            <div class="section">
+                <h2>Activity Log</h2>
+                <div id="log" class="log"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const ws = new WebSocket(`ws://${window.location.hostname}:${window.location.port || 3000}`);
+        
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'state') {
+                updateState(data.data);
+            } else if (data.type === 'error') {
+                addLog(data.message, 'error');
+            }
+        };
+        
+        function updateState(state) {
+            document.getElementById('phase').textContent = state.phase || 'idle';
+            document.getElementById('fundingWallets').textContent = state.fundingWallets?.length || 0;
+            document.getElementById('volumeWallets').textContent = state.volumeWallets?.length || 0;
+            document.getElementById('monDeposited').textContent = state.totalMonDeposited || 0;
+            document.getElementById('volumeGenerated').textContent = state.volumeGenerated || 0;
+            
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status ${state.phase || 'idle'}`;
+        }
+        
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        async function initializeBot() {
+            try {
+                const res = await fetch('/api/init', { method: 'POST' });
+                const data = await res.json();
+                addLog(data.message || 'Bot initialized', data.success ? 'success' : 'error');
+            } catch (error) {
+                addLog(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function startBot() {
+            const tokenConfig = {
+                name: document.getElementById('tokenName').value,
+                symbol: document.getElementById('tokenSymbol').value,
+                description: document.getElementById('tokenDescription').value,
+                imageUrl: document.getElementById('tokenImageUrl').value,
+            };
+            
+            try {
+                const res = await fetch('/api/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(tokenConfig),
+                });
+                const data = await res.json();
+                addLog(data.message || 'Bot started', data.success ? 'success' : 'error');
+            } catch (error) {
+                addLog(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function stopBot() {
+            try {
+                const res = await fetch('/api/stop', { method: 'POST' });
+                const data = await res.json();
+                addLog(data.message || 'Bot stopped', data.success ? 'success' : 'error');
+            } catch (error) {
+                addLog(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function triggerRecovery() {
+            if (!confirm('Are you sure you want to trigger recovery? This will sell all tokens and consolidate MON.')) {
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/recovery', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ expectedDemand: 0 }),
+                });
+                const data = await res.json();
+                addLog(data.message || 'Recovery triggered', data.success ? 'success' : 'error');
+            } catch (error) {
+                addLog(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Poll state periodically
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/state');
+                const state = await res.json();
+                updateState(state);
+            } catch (error) {
+                console.error('Failed to fetch state:', error);
+            }
+        }, 2000);
+        
+        addLog('Control panel loaded', 'info');
+    </script>
+</body>
+</html>
+
