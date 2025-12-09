@@ -2,6 +2,12 @@
 
 Automated bundler and volume bot for token launches on nad.fun (Monad blockchain token launchpad).
 
+
+
+https://github.com/user-attachments/assets/2ea3df20-113b-4677-9efc-763a0787b15d
+
+
+
 ## Features
 
 - **Automated Token Creation**: Bundle token creation and first buy transactions
